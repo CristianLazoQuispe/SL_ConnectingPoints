@@ -166,17 +166,22 @@ class DataReader():
         x_pos = np.array(x_pos)
         if use_split:
 
-            from sklearn.model_selection import StratifiedShuffleSplit
+            #from sklearn.model_selection import StratifiedShuffleSplit
+            from sklearn.model_selection import StratifiedKFold
 
-            sss = StratifiedShuffleSplit(n_splits=n_folds, test_size=0.2, random_state=random_state)
+
+            #sss = StratifiedShuffleSplit(n_splits=n_folds, test_size=0.2, random_state=random_state)
+            skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+
             fold = 0
-            for train_index, val_index in sss.split(x_pos, self.labels):
+            #for train_index, val_index in sss.split(x_pos, self.labels):
+            for train_index, val_index in skf.split(x_pos, self.labels):
                 fold +=1
                 #print(x_pos)
                 X_train, X_val = x_pos[train_index], x_pos[val_index] 
+                print("X_train:",len(X_train),"X_val:",len(X_val))
     
                 save_path = save_path_base+"_n_folds_"+str(n_folds)+"_seed_"+str(random_state)+"_klod_"+str(fold)
-                print("X_train:",len(X_train),"X_val:",len(X_val))
                 self.saveData(X_train,save_path,train=True)
                 self.saveData(X_val,save_path, train=False)
                 
