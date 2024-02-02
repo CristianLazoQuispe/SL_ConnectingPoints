@@ -136,7 +136,7 @@ class DataReader():
 
         h5_file.close()
 
-    def splitDataset(self,random_state=42,use_split=False):
+    def splitDataset(self,n_folds=5,random_state=42,use_split=False):
         df_words = pd.read_csv(f"./incrementalList.csv",encoding='utf-8', header=None)
         print(df_words[0])
         words = list(df_words[0])
@@ -168,14 +168,14 @@ class DataReader():
 
             from sklearn.model_selection import StratifiedShuffleSplit
 
-            sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=random_state)
+            sss = StratifiedShuffleSplit(n_splits=n_folds, test_size=0.2, random_state=random_state)
             fold = 0
             for train_index, val_index in sss.split(x_pos, self.labels):
                 fold +=1
                 #print(x_pos)
                 X_train, X_val = x_pos[train_index], x_pos[val_index] 
     
-                save_path = save_path_base+"_seed_"+str(random_state)+"_klod_"+str(fold)
+                save_path = save_path_base+"_n_folds_"+str(n_folds)+"_seed_"+str(random_state)+"_klod_"+str(fold)
                 print("X_train:",len(X_train),"X_val:",len(X_val))
                 self.saveData(X_train,save_path,train=True)
                 self.saveData(X_val,save_path, train=False)
@@ -186,18 +186,33 @@ class DataReader():
             self.saveData(pos_train,save_path_base,train=True)
             self.saveData(pos_val,save_path_base, train=False)
 
-kpModel = "mediapipe"
-datasets = ["PUCP_PSL_DGI305", "AEC"] #["AEC", "PUCP_PSL_DGI156", "PUCP_PSL_DGI305", "WLASL", "AUTSL"]
+import argparse
 
-dataset_out_name = [dataset if len(dataset)<6 else dataset[-6:] for dataset in datasets]
-dataset_out_name = '-'.join(dataset_out_name)
+def get_default_args():
+    parser = argparse.ArgumentParser(add_help=False)
 
-print(f"procesing {datasets} - using {kpModel} ...")
+    parser.add_argument("--n_folds", type=int, default=5, help="")
+    parser.add_argument("--random_state", type=int, default=42, help="")
+    parser.add_argument("--use_split", type=int, default=0, help="")
 
-output_path = f"output/{dataset_out_name}--$--incremental--{kpModel}.hdf5"
+    return parser
+if __name__ == '__main__':
+    #python unifyAndsplitOutputs_byCSV.py --n_folds 5 --random_state 100 --use_split 1
+    parser = argparse.ArgumentParser("", parents=[get_default_args()], add_help=False)
+    args = parser.parse_args()
+    
+    kpModel = "mediapipe"
+    datasets = ["PUCP_PSL_DGI305", "AEC"] #["AEC", "PUCP_PSL_DGI156", "PUCP_PSL_DGI305", "WLASL", "AUTSL"]
 
-dataReader = DataReader(datasets, kpModel, output_path)
-dataReader.fixClasses()
-dataReader.splitDataset(random_state=42,use_split=True)
-#splitDataset(path)
+    dataset_out_name = [dataset if len(dataset)<6 else dataset[-6:] for dataset in datasets]
+    dataset_out_name = '-'.join(dataset_out_name)
+
+    print(f"procesing {datasets} - using {kpModel} ...")
+
+    output_path = f"output/{dataset_out_name}--$--incremental--{kpModel}.hdf5"
+
+    dataReader = DataReader(datasets, kpModel, output_path)
+    dataReader.fixClasses()
+    dataReader.splitDataset(n_folds=args.n_folds,random_state=args.random_state,use_split=bool(args.use_split))
+    #splitDataset(path)
 
