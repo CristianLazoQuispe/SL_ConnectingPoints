@@ -103,7 +103,7 @@ class DataReader():
                 self.data.pop(pos)
 
 
-    def saveData(self, indexOrder, train=True):
+    def saveData(self, indexOrder,save_path, train=True):
 
         #reorder data
         class_tmp = [self.classes[pos] for pos in indexOrder]
@@ -112,22 +112,16 @@ class DataReader():
         labels_tmp = [self.labels[pos] for pos in indexOrder]
 
         counter = Counter(class_tmp)
-        print(counter)
-        print(len(counter))
+        #print(counter)
+        print("counter:",len(counter))
         #print(set(class_tmp))
-        print("Number of classes:", len(set(class_tmp)))
-
-        # set the path
-        save_path = os.path.normpath(f"split/{self.output_path.split(os.sep)[1]}")
-        save_path = save_path.replace('$',str(len(set(class_tmp))))
-        save_path = save_path.split('.')
 
         if train:
             print("Train:", len(indexOrder))
-            path = f"{save_path[0]}-Train.hdf5"
+            path = f"{save_path}-Train.hdf5"
         else:
             print("Val:", len(indexOrder))
-            path = f"{save_path[0]}-Val.hdf5"
+            path = f"{save_path}-Val.hdf5"
 
         # Save H5 
         h5_file = h5py.File(path, 'w')
@@ -142,8 +136,7 @@ class DataReader():
 
         h5_file.close()
 
-    def splitDataset(self):
-
+    def splitDataset(self,random_state=42,use_split=False):
         df_words = pd.read_csv(f"./incrementalList.csv",encoding='utf-8', header=None)
         print(df_words[0])
         words = list(df_words[0])
@@ -161,14 +154,37 @@ class DataReader():
 
         # split the data into Train and Val (but use list position as X to reorder)
         x_pos = range(len(self.labels))
+        n_unique_classes = len(set((self.classes)))
+        print("Number of classes:",  n_unique_classes)
 
-        pos_train, pos_val, y_train, y_val = train_test_split(x_pos, self.labels, train_size=0.8 , random_state=1, stratify=self.labels)
-        
-        #prueba_seed_1
+        # set the path
+        save_path = os.path.normpath(f"split/{self.output_path.split(os.sep)[1]}")
+        save_path = save_path.replace('$',str(n_unique_classes))
+        save_path_base = save_path.split('.')[0]
 
-        # save the data
-        self.saveData(pos_train,train=True)
-        self.saveData(pos_val, train=False)
+        self.labels = np.array(self.labels)
+        x_pos = np.array(x_pos)
+        if use_split:
+
+            from sklearn.model_selection import StratifiedShuffleSplit
+
+            sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=random_state)
+            fold = 0
+            for train_index, val_index in sss.split(x_pos, self.labels):
+                fold +=1
+                #print(x_pos)
+                X_train, X_val = x_pos[train_index], x_pos[val_index] 
+    
+                save_path = save_path_base+"_seed_"+str(random_state)+"_klod_"+str(fold)
+                print("X_train:",len(X_train),"X_val:",len(X_val))
+                self.saveData(X_train,save_path,train=True)
+                self.saveData(X_val,save_path, train=False)
+                
+        else:
+            pos_train, pos_val, y_train, y_val = train_test_split(x_pos, self.labels, train_size=0.8 , random_state=1, stratify=self.labels)
+
+            self.saveData(pos_train,save_path_base,train=True)
+            self.saveData(pos_val,save_path_base, train=False)
 
 kpModel = "mediapipe"
 datasets = ["PUCP_PSL_DGI305", "AEC"] #["AEC", "PUCP_PSL_DGI156", "PUCP_PSL_DGI305", "WLASL", "AUTSL"]
@@ -182,7 +198,6 @@ output_path = f"output/{dataset_out_name}--$--incremental--{kpModel}.hdf5"
 
 dataReader = DataReader(datasets, kpModel, output_path)
 dataReader.fixClasses()
-
-dataReader.splitDataset()
+dataReader.splitDataset(random_state=42,use_split=True)
 #splitDataset(path)
 
