@@ -197,7 +197,7 @@ def get_default_args():
 
     return parser
 if __name__ == '__main__':
-    #python unifyAndsplitOutputs_byCSV.py --n_folds 5 --random_state 100 --use_split 1
+    #python unifyAndsplitOutputs_byCSV.py --n_folds=5 --random_state=100 --use_split=1
     parser = argparse.ArgumentParser("", parents=[get_default_args()], add_help=False)
     args = parser.parse_args()
     
