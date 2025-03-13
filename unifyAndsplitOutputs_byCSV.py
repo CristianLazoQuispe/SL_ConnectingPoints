@@ -112,8 +112,8 @@ class DataReader():
         labels_tmp = [self.labels[pos] for pos in indexOrder]
 
         counter = Counter(class_tmp)
-        #print(counter)
-        print("counter:",len(counter))
+        print(counter)
+        print("*** counter:",len(counter))
         #print(set(class_tmp))
 
         if train:
@@ -184,7 +184,7 @@ class DataReader():
                 save_path = save_path_base+"_n_folds_"+str(n_folds)+"_seed_"+str(random_state)+"_klod_"+str(fold)
                 self.saveData(X_train,save_path,train=True)
                 self.saveData(X_val,save_path, train=False)
-                
+                break
         else:
             pos_train, pos_val, y_train, y_val = train_test_split(x_pos, self.labels, train_size=0.8 , random_state=1, stratify=self.labels)
 
@@ -220,4 +220,3 @@ if __name__ == '__main__':
     dataReader.fixClasses()
     dataReader.splitDataset(n_folds=args.n_folds,random_state=args.random_state,use_split=bool(args.use_split))
     #splitDataset(path)
-

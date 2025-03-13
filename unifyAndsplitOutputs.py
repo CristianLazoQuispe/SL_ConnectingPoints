@@ -80,12 +80,10 @@ class DataReader():
 
         for pos in range(len(self.classes)):
             #To avoid no selected classes
-            if self.classes[pos] not in selected:
-                continue
-
-            classes.append(self.classes[pos])
-            videoName.append(self.videoName[pos])
-            data.append(self.data[pos])
+            if self.classes[pos] in selected:
+                classes.append(self.classes[pos])
+                videoName.append(self.videoName[pos])
+                data.append(self.data[pos])
 
         self.classes = classes
         self.videoName = videoName
@@ -98,8 +96,14 @@ class DataReader():
         videoName_tmp = [self.videoName[pos] for pos in indexOrder]
         data_tmp = [self.data[pos] for pos in indexOrder]
         labels_tmp = [self.labels[pos] for pos in indexOrder]
-        print(set(class_tmp))
+        #print(set(class_tmp))
         print(len(set(class_tmp)))
+
+        counter = Counter(class_tmp)
+        print(counter)
+        print("*** counter:",len(counter))
+        #print(set(class_tmp))
+
         # set the path
         save_path = os.path.normpath(f"split/{self.output_path.split(os.sep)[1]}")
         save_path = save_path.split('.')
@@ -131,39 +135,54 @@ class DataReader():
         counter = Counter(self.classes)
         #print(counter)
         # Select the words that have more or equal than # instances    
-        counter = [word for word, count in counter.items() if count >= 25]
+        counter_selected = [word for word, count in counter.items() if count >= 16]
+        
+        #INCLUDE
+        #counter_selected = list(set(['IT', 'SHE', 'CAR', 'SHOES', 'WE', 'BOAT', 'SCHOOL', 'TRANSPORTATION', 'HOUSE', 'TEMPLE', 'THANK YOU', 'PLANE', 'PLEASED', 'HELLO', 'GOOD EVENING', 'EXTRA', 'HOW ARE YOU', 'STORE OR SHOP', 'BICYCLE', 'TRAIN TICKET', 'GROUND', 'SHORT', 'OLD', 'HE', 'LIBRARY', 'GOOD NIGHT', 'GOOD AFTERNOON', 'RESTAURANT', 'YOU (PLURAL)', 'TRUCK', 'WARM', 'HOSPITAL', 'ALRIGHT', 'I', 'BANK', 'BUS', 'TRAIN', 'GOOD MORNING']))
+        
+        #WLASL
+        counter_selected = ['PIZZA', 'YES', 'NOW', 'LIKE', 'HELP', 'ORANGE', 'BED', 'SHIRT', 'STUDY', 'WANT', 'KISS', 'MANY', 'BOWLING', 'COMPUTER', 'WRONG', 'DRINK', 'BEFORE', 'FISH', 'BLACK', 'GO', 'HEARING', 'HAT', 'COOL', 'HOT', 'DOG', 'GIVE', 'MOTHER', 'COUSIN', 'WOMAN', 'CAN', 'BIRD', 'CANDY', 'WHO', 'WHITE', 'NO', 'DEAF', 'THIN','SHORT']
+
+        #LSA64
+        #counter_selected = [ '054', '049', '039', '004', '027', '017', '061', '060', '019', '008', '009', '057', '011', '038', '037', '048', '007', '032', '022', '006', '030', '005', '044', '025', '021', '036', '012', '050', '010', '053', '020', '058', '023', '029', '001', '015', '031', '047']
         
         # Errase banned words
         df_banned = pd.read_csv("bannedList.csv",encoding='latin1', header=None)
 
         print('#'*40)
-
+        print("labels:")
+        for word, count in counter.items():
+             if count >= 15:
+                print(f"word : {word} - counter : {count}")
         # Filter the data to have selected instances
-        self.selectInstances(counter)
-
+        self.selectInstances(counter_selected)
+        
+        print("counter_selected:\n",counter_selected)
         # generate classes number to use it in stratified option
         self.generate_meaning_dict()
         print()
         # split the data into Train and Val (but use list position as X to reorder)
         x_pos = range(len(self.labels))
+        print("len(self.labels):",len(self.labels))
         pos_train, pos_val, y_train, y_val = train_test_split(x_pos, self.labels, train_size=0.8 , random_state=32, stratify=self.labels)
         
         # save the data
+        print("****** TRAIN ********")
         self.saveData(pos_train,train=True)
+        print("******  VAL ********")
         self.saveData(pos_val, train=False)
 
     
 kpModel = "mediapipe"
-datasets = ["INCLUDE"]#["AEC", "PUCP_PSL_DGI156", "PUCP_PSL_DGI305"] #["WLASL"]
+datasets = ["WLASL"]#["AEC", "PUCP_PSL_DGI156", "PUCP_PSL_DGI305"] #["WLASL"]
 
 dataset_out_name = [dataset if len(dataset)<6 else dataset[-6:] for dataset in datasets]
 dataset_out_name = '-'.join(dataset_out_name)
 
 print(f"procesing {datasets} - using {kpModel} ...")
 
-output_path = f"output/{dataset_out_name}--{kpModel}.hdf5"
+output_path = f"output/{dataset_out_name}_{kpModel}.hdf5"
 dataReader = DataReader(datasets, kpModel, output_path)
 dataReader.fixClasses()
 dataReader.splitDataset()
 #splitDataset(path)
-
